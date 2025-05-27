@@ -12,6 +12,7 @@ main() {
     mkdir -p "assets" "apps" "$STORAGE" "$STORAGE/Patched" "$STORAGE/Stock"
 
     [ "$ROOT_ACCESS" == true ] && MENU_ENTRY=(7 "Unmount Patched app")
+    [ "$ROOT_ACCESS" == false ] && [ "RISH_ACCESS" == true ] && MENU_ENTRY=(7 "Uninstall Patched app (Rish)")
 
     [ "$LIGHT_THEME" == "on" ] && THEME="LIGHT" || THEME="DARK"
     export DIALOGRC="config/.DIALOGRC_$THEME"
@@ -54,6 +55,7 @@ main() {
 
 tput civis
 ROOT_ACCESS="$1"
+RISH_ACCESS="$2"
 
 for MODULE in $(find modules -type f -name "*.sh"); do
     source "$MODULE"

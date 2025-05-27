@@ -166,9 +166,16 @@ else
     ROOT_ACCESS=false
 fi
 
+# Rish is used only if root access is not available.
+if [ "$ROOT_ACCESS" = false ] && [ "$RISH_ACCESS" != false ] && rish -c 'exit' &> /dev/null; then
+    RISH_ACCESS=true
+else
+    RISH_ACCESS=false
+fi
+
 cd "$SRC" &> /dev/null || terminate
 
-bash main.sh "$ROOT_ACCESS"
+bash main.sh "$ROOT_ACCESS" "$RISH_ACCESS"
 EXIT_CODE=$?
 
 exit "$EXIT_CODE"
