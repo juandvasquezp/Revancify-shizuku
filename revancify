@@ -151,7 +151,7 @@ fetchSrc() {
     fi
 }
 
-clear
+clearDelete Apps
 
 if ! installDependencies; then
     echo -e "Dependencies not installed !!\nRun again with stable internet connection."
@@ -162,16 +162,22 @@ fetchSrc
 
 if [ "$ROOT_ACCESS" != false ] && su -c 'exit' &> /dev/null; then
     ROOT_ACCESS=true
+    echo -e "Root access is available, using it for app uninstallation."
 else
     ROOT_ACCESS=false
+    echo -e "Root access is not available, using Rish for app uninstallation."
 fi
 
 # Rish is used only if root access is not available.
-if [ "$ROOT_ACCESS" = false ] && [ "$RISH_ACCESS" != false ] && rish -c 'exit' &> /dev/null; then
+if [ "$ROOT_ACCESS" == false ] && [ "$RISH_ACCESS" != false ] && rish -c 'exit' &> /dev/null; then
+    echo -e "Rish is available, using it for app uninstallation."
     RISH_ACCESS=true
 else
+    echo -e "Rish is not available, using normal uninstallation."
     RISH_ACCESS=false
 fi
+
+sleep 10
 
 cd "$SRC" &> /dev/null || terminate
 

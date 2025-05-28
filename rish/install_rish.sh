@@ -20,11 +20,15 @@ log "START"
 if [ "$(rish -c '[ -d "/data/local/tmp/revancify" ] && echo Exists || echo Missing')" = "Missing" ]; then
     rish -c 'mkdir -p "/data/local/tmp/revancify"'
     log "/data/local/tmp/revancify created."
+else
+    log "/data/local/tmp/revancify already exists."
 fi
 
 if [ "$(rish -c '[ -e "/data/local/tmp/revancify/'"$PKG_NAME"'.apk" ] && echo Exists || echo Missing')" = "Exists" ]; then
     rish -c 'rm "/data/local/tmp/revancify/'"$PKG_NAME"'.apk"'
-    echo "$PKG_NAME.apk deleted"
+    log "$PKG_NAME.apk deleted"
+else
+    log "$PKG_NAME.apk does not exist, skipping deletion."
 fi
 
 log "Checking if $APP_NAME $APP_VER is installed"
@@ -63,7 +67,7 @@ log "Installing $APP_NAME $APP_VER..."
 if [ -e "apps/$APP_NAME/$APP_VER-$SOURCE.apk" ]; then
     rish -c 'cp -f "'"apps/$APP_NAME/$APP_VER-$SOURCE.apk"'" "'"$PATCHED_APP_PATH"'"'
     log "Copied patched APK to $PATCHED_APP_PATH."
-    if [ ! -e "$PATCHED_APP_PATH" ]; then
+    if [ "$(rish -c '[ -e "'"$PATCHED_APP_PATH"'" ] && echo Exists || echo Missing')" = "Missing" ]; then
       log "Path: $PATCHED_APP_PATH does not exist !!"
       log "Exit !!"
       exit 1
