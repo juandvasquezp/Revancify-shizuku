@@ -14,7 +14,7 @@ Options:
 -v:  Print current version
 -h:  Print help statement"
 
-while getopts ":furvh" OPT 2> /dev/null; do
+while getopts ":furRvh" OPT 2> /dev/null; do
     case $OPT in
         f)
             rm "$SRC/.info" &> /dev/null
