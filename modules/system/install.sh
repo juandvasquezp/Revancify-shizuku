@@ -14,4 +14,3 @@ installApp() {
     fi
     unset PKG_NAME APP_NAME APKMIRROR_APP_NAME APP_VER
 }
-    if [ ! -e "$PATCHED_APP_PATH" ]; then
