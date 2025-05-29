@@ -12,7 +12,6 @@ main() {
     mkdir -p "assets" "apps" "$STORAGE" "$STORAGE/Patched" "$STORAGE/Stock"
 
     [ "$ROOT_ACCESS" == true ] && MENU_ENTRY=(7 "Unmount Patched app")
-    [ "$ROOT_ACCESS" == false ] && [ "$RISH_ACCESS" == true ] && MENU_ENTRY=(7 "Uninstall Patched app (Rish)")
 
     [ "$LIGHT_THEME" == "on" ] && THEME="LIGHT" || THEME="DARK"
     export DIALOGRC="config/.DIALOGRC_$THEME"
