@@ -155,7 +155,7 @@ fetchSrc() {
     fi
 }
 
-clearDelete Apps
+clear
 
 if ! installDependencies; then
     echo -e "Dependencies not installed !!\nRun again with stable internet connection."
