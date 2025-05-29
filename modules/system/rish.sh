@@ -134,14 +134,27 @@ installerRish() {
         local INSTALL_RESULT=$(rish -c 'pm install --user 0 -r -d "'"$PATCHED_APP_PATH"'"')
         log "pm install result: $INSTALL_RESULT"
         if echo "$INSTALL_RESULT" | grep -q "INSTALL_FAILED_VERSION_DOWNGRADE"; then
-            log "Downgrade failed, trying full uninstall and reinstall..."
-            local UNINSTALL_RESULT=$(rish -c 'pm uninstall --user 0 "'"$PKG_NAME"'"')
-            log "Uninstall result: $UNINSTALL_RESULT"
-            INSTALL_RESULT=$(rish -c 'pm install --user 0 -r "'"$PATCHED_APP_PATH"'"')
-            log "Final install result: $INSTALL_RESULT"
+            log "Downgrade failed, asking user if they want to uninstall and reinstall..."
+
+            dialog --backtitle 'Revancify' \
+                --yesno "The downgrade to $APP_VER failed.\n\nWould you like to uninstall the current app and perform a clean install instead?" 12 50
+
+            if [ $? -eq 0 ]; then
+                log "User agreed to uninstall for clean reinstall."
+
+                local UNINSTALL_RESULT=$(rish -c 'pm uninstall --user 0 "'"$PKG_NAME"'"')
+                log "Uninstall result: $UNINSTALL_RESULT"
+
+                INSTALL_RESULT=$(rish -c 'pm install --user 0 -r "'"$PATCHED_APP_PATH"'"')
+                log "Final install result: $INSTALL_RESULT"
+            else
+                log "User canceled uninstall after downgrade failure. Aborting..."
+                notify msg "User canceled after downgrade failure.\n\nNo changes made."
+                return 1
+            fi
         fi
     else
-        log "Installing $APP_NAME $APP_VER withouth downgrading..."
+        log "Installing $APP_NAME $APP_VER without downgrading..."
         local INSTALL_RESULT=$(rish -c 'pm install --user 0 -r "'"$PATCHED_APP_PATH"'"')
         log "pm install result: $INSTALL_RESULT"
     fi
