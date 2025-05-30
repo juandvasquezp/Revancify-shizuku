@@ -124,7 +124,6 @@ installAppRish() {
     if bash system/rish-install.sh "$PKG_NAME" "$APP_NAME" "$EXPORTED_APK_NAME" "$STORAGE"; then
         log "Installation command executed successfully."
         notify msg "$APP_NAME $APP_VER installed successfully using Rish!"
-        return 0
     elif [ "$HIDDEN_APP_INSTALL" == true ] ; then
         # Second attempt to install the APK, if we had to uninstall the current app
         log "First installation attempt failed, trying again after uninstallation."
@@ -151,7 +150,6 @@ installAppRish() {
                 if bash system/rish-install.sh "$PKG_NAME" "$APP_NAME" "$EXPORTED_APK_NAME" "$STORAGE"; then
                     log "Installation command executed successfully after uninstallation from all users."
                     notify msg "$APP_NAME $APP_VER installed successfully using Rish!"
-                    return 0
                 else
                     log "Installation failed after uninstallation from all users."
                     notify msg "Installation Failed !!\nShare logs to developer. \n\nCopied patched $APP_NAME apk to Internal Storage..."
@@ -169,10 +167,14 @@ installAppRish() {
             return 1
         fi
     fi
-    log "UNEXPECTED ERROR: We shouldn't reach this point, but if we do, we will return 1."
-    notify msg "Installation Failed !!\nShare logs to developer. \n\nCopied patched $APP_NAME apk to Internal Storage..."
-    termux-open --send "$STORAGE/rish_log.txt"
-    return 1
+    
+    # If we reach this point, the installation was successful
+    log "Installation of $APP_NAME $APP_VER completed successfully, finalized code."
+    if [ "$LAUNCH_APP_AFTER_MOUNT" == "on" ]; then
+        # The su version used kill -9, I replaced it with the adb command 'am force-stop' avaliable in rish
+        rish -c 'settings list secure | sed -n -e "s/\/.*//" -e "s/default_input_method=//p" | xargs am force-stop && pm resolve-activity --brief '"$PKG_NAME"' | tail -n 1 | xargs am start -n && am force-stop com.termux'
+    fi
+    return 0
 }
 
 uninstallAppRish() {
