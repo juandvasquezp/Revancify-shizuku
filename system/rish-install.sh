@@ -2,8 +2,8 @@
 
 PKG_NAME="$1"
 APP_NAME="$2"
-EXPORTED_APK_NAME="$4"
-STORAGE="$3"
+EXPORTED_APK_NAME="$3"
+STORAGE="$4"
 
 if [ -z "$STORAGE" ]; then
     log() { echo "$1"; }
@@ -12,11 +12,12 @@ else
 fi
 
 # Current user, it's usually 0, but can be different in some cases.
-CURRENT_USER=$(rish -c 'am get-current-user' 2>/dev/null)
+CURRENT_USER=$(rish -c 'am get-current-user' 2>/dev/null | tr -d '\r')
+CURRENT_USER=${CURRENT_USER:-0}
 
 # It's needed for pm install to have the APK in the /data/local/tmp/ directory
 PATCHED_APP_PATH="/data/local/tmp/revancify/$PKG_NAME.apk"
-EXPORTED_APP_PATH="/storage/emulated/$CURRENT_USER/Revancify/Patched/$EXPORTED_APK_NAME"
+EXPORTED_APP_PATH="/storage/emulated/$CURRENT_USER/Revancify/Patched/$EXPORTED_APK_NAME.apk"
 
 # This is almost the same as the mouth.sh script from the su version.
 if [ "$(rish -c '[ -d "/data/local/tmp/revancify" ] && echo Exists || echo Missing')" == "Missing" ]; then
@@ -35,7 +36,7 @@ rish -c 'cp -f "'"$EXPORTED_APP_PATH"'" "'"$PATCHED_APP_PATH"'"'
 
 if [ "$(rish -c '[ -e "'"$PATCHED_APP_PATH"'" ] && echo Exists || echo Missing')" == "Missing" ]; then
     log "Failed to move patched APK to $PATCHED_APP_PATH"
-    return 1
+    exit 1
 fi
 
 CMD_RISH="pm install --user current $PATCHED_APP_PATH"
@@ -48,8 +49,15 @@ log "Install output: $OUTPUT"
 # We check the output for success or failure
 if echo "$OUTPUT" | grep -q "^Success"; then
     log "Install succeeded."
+    rish -c 'rm -f "'"$PATCHED_APP_PATH"'"'  # Clean up the temporary APK
+    if [ -z "$STORAGE" ]; then
+        rish -c 'rm -f "'"$EXPORTED_APP_PATH"'"'  # Clean up the exported APK on success
+    else
+        rm -f "$STORAGE/Patched/$EXPORTED_APK_NAME.apk"  # Clean up the exported APK on success
+    fi
     exit 0
 else
     log "Install failed."
+    rish -c 'rm -f "'"$PATCHED_APP_PATH"'"'  # Clean up the temporary APK
     exit 1
 fi

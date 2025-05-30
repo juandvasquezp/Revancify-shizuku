@@ -21,7 +21,7 @@ installAppRish() {
     notify info "Please Wait !!\nInstalling $APP_NAME using Rish..."
     # Copy the patched APK to the storage
     CANONICAL_VER=${APP_VER//:/}
-    local EXPORTED_APK_NAME="$APP_NAME-$CANONICAL_VER-$SOURCE.apk"
+    local EXPORTED_APK_NAME="$APP_NAME-$CANONICAL_VER-$SOURCE"
     cp -f "apps/$APP_NAME/$APP_VER-$SOURCE.apk" "$STORAGE/Patched/$EXPORTED_APK_NAME.apk" &> /dev/null
     
     # Verify current installed version and signatures
@@ -36,7 +36,7 @@ installAppRish() {
         else
             # If the app is not installed in the current user, we try to get the stock app path from dumpsys
             # This means the app is installed in a different user
-            STOCK_APP_PATH=$(rish -c 'dumpsys package com.spotify.music | sed -n "s/^[[:space:]]*path: \(.*base\.apk\)/\1/p"')
+            STOCK_APP_PATH=$(rish -c 'dumpsys package '"$PKG_NAME"' | sed -n "s/^[[:space:]]*path: \(.*base\.apk\)/\1/p"')
             log "Dumpsys used to get stock app path, that means the app is installed but in a different user."
             HIDDEN_APP_INSTALL=true
         fi
@@ -112,9 +112,8 @@ installAppRish() {
             log "Uninstallation successful, proceeding with installation."
             ABLE_TO_INSTALL=true
         else
-            log "Uninstallation failed, aborting installation."
-            notify msg "Failed to uninstall the current app.\n\nAborting installation...\n\nCopied patched $APP_NAME apk to Internal Storage..."
-            ABLE_TO_INSTALL=false
+            log "Uninstallation failed."
+            ABLE_TO_INSTALL=true
             return 1
         fi
     fi
@@ -124,11 +123,11 @@ installAppRish() {
     local SECOND_ATTEMPT=false
     if [ "$ABLE_TO_INSTALL" = true ]; then
         log "Attempting to install the patched APK..."
-        if bash system/rish-install.sh "$PKG_NAME" "$APP_NAME" "$APP_VER" "$EXPORTED_APK_NAME"; then
+        if bash system/rish-install.sh "$PKG_NAME" "$APP_NAME" "$EXPORTED_APK_NAME" "$STORAGE"; then
             log "Installation command executed successfully."
             notify msg "$APP_NAME $APP_VER installed successfully using Rish!"
             return 0
-        elif [ "$UNINSTALL_CURRENT_INSTALLATION" = true ] || [ "$HIDDEN_APP_INSTALL" = true ]; then
+        elif ; then
             # Second attempt to install the APK, if we had to uninstall the current app
             log "First installation attempt failed, trying again after uninstallation."
             SECOND_ATTEMPT=true
@@ -140,6 +139,8 @@ installAppRish() {
         fi
     else 
         log "Installation aborted due to previous errors."
+        notify msg "Failed to uninstall the current app.\n\nAborting installation...\n\nCopied patched $APP_NAME apk to Internal Storage..."
+        termux-open --send "$STORAGE/rish_log.txt"
         return 1
     fi
 
@@ -147,16 +148,16 @@ installAppRish() {
         # We try to uninstall the app again, this can happen in Cases 1, 2, 3 if we have multiple users in the device with the app
         log "Getting second attempt, this can happen in Cases 1, 2, 3, if we have multiple users in the device with the app..."
         
-        --dialog --backtitle 'Revancify' --defaultno \
-            --yesno "We coudn't install the App.\nApp is probably installed in a different user with a different signature.\n\nDo you want to uninstall the app from all users and proceed?\nWe cannot guarantee this will succeed..." 12 45
+        dialog --backtitle 'Revancify' --defaultno \
+            --yesno "We coudn't install the App.\nA different user probably has an incompatible app.\n\nDo you want to uninstall the app from all users and proceed?\nWe cannot guarantee this will succeed..." 12 45
         if [ $? -eq 0 ]; then
             log "User accepted to uninstall the app from all users."
             # We try to uninstall the app from all users, this can fail if the system doesn't allow it
             notify info "Please Wait !!\nUninstalling $APP_NAME from all users using Rish..."
             if uninstallAppRish true true "$STORAGE"; then
                 log "Uninstallation from all users successful, proceeding with installation."
-                notify info "Please Wait !!\nInstalling $APP_NAME using Rish..."
-                if bash system/rish-install.sh "$PKG_NAME" "$APP_NAME" "$APP_VER" "$EXPORTED_APK_NAME"; then
+                notify info "Please Wait !!\nInstalling $APP_NAME $APP_VER using Rish..."
+                if bash system/rish-install.sh "$PKG_NAME" "$APP_NAME" "$EXPORTED_APK_NAME" "$STORAGE"; then
                     log "Installation command executed successfully after uninstallation from all users."
                     notify msg "$APP_NAME $APP_VER installed successfully using Rish!"
                     return 0
@@ -188,9 +189,10 @@ uninstallAppRish() {
     log () {
         echo "- $1" >> "$STORAGE/rish_log.txt"
     }
-    if [ "$KEEP_LOG" != true ]; then
+    if [ "$KEEP_LOG" != true ] && [ -f "$STORAGE/rish_log.txt" ]; then
         rm "$STORAGE/rish_log.txt"
     fi
+
 
     if [ "$UNINSTALL_FROM_ALL_USERS" = true ]; then
         log "Uninstalling from all users..."
