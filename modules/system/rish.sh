@@ -7,7 +7,6 @@ installAppRish() {
     rm "$STORAGE/rish_log.txt"
     log "START INSTALL"
 
-    local ABLE_TO_INSTALL=true
     local UNINSTALL_CURRENT_INSTALLATION=false
     local HIDDEN_APP_INSTALL=false
 
@@ -63,7 +62,6 @@ installAppRish() {
                     # User declined to uninstall the current app for Case 2
                     log "Case 2: User declined to uninstall the current app."
                     notify msg "User declined to uninstall the current app.\n\nAborting installation...\n\nCopied patched $APP_NAME apk to Internal Storage..."
-                    ABLE_TO_INSTALL=false
                     return 1
                 fi
             fi
@@ -75,7 +73,7 @@ installAppRish() {
     fi
 
     # Check if we're already due for uninstallation
-    if [ "$UNINSTALL_CURRENT_INSTALLATION" = false ]; then
+    if [ "$UNINSTALL_CURRENT_INSTALLATION" == false ]; then
         log "Checking if it's a downgrade..."
         if jq -e '.[0] > .[1]' <<< "[\"${INSTALLED_VERSION:-0}\", \"$APP_VER\"]" &> /dev/null; then
             # Case 3: Installed version is greater than the new version, we are downgrading
@@ -93,13 +91,11 @@ installAppRish() {
                 else
                     log "Case 3: User decided not to uninstall to continue the downgrade. Aborting..."
                     notify msg "User declined to uninstall the current version.\n\nAborting installation...\n\nCopied patched $APP_NAME apk to Internal Storage..."
-                    ABLE_TO_INSTALL=false
                     return 1
                 fi
             else
                 log "Case 3: Downgrades are not allowed, exiting."
                 notify msg "Downgrades are not allowed in Configuration, exiting.\n\nCopied patched $APP_NAME apk to Internal Storage..."
-                ABLE_TO_INSTALL=false
                 return 1
             fi
         else
@@ -107,44 +103,38 @@ installAppRish() {
         fi
     fi
 
-    if [ "$UNINSTALL_CURRENT_INSTALLATION" = true ]; then
+    if [ "$UNINSTALL_CURRENT_INSTALLATION" == true ]; then
         if uninstallAppRish false true "$STORAGE"; then
             log "Uninstallation successful, proceeding with installation."
-            ABLE_TO_INSTALL=true
+            if ! rish -c 'dumpsys package "'"$PKG_NAME"'"' 2>&1 | grep -q "Unable to find package"; then
+                log "Found hidden installation post uninstallation. This might be a different user."
+                HIDDEN_APP_INSTALL=true
+            if
         else
             log "Uninstallation failed."
-            ABLE_TO_INSTALL=true
+            mesage="Failed to uninstall the current app.\n\nAborting installation...\n\nCopied patched $APP_NAME apk to Internal Storage..."
             return 1
         fi
     fi
 
     notify info "Please Wait !!\nInstalling $APP_NAME $APP_VER using Rish..."
 
-    local SECOND_ATTEMPT=false
-    if [ "$ABLE_TO_INSTALL" = true ]; then
-        log "Attempting to install the patched APK..."
-        if bash system/rish-install.sh "$PKG_NAME" "$APP_NAME" "$EXPORTED_APK_NAME" "$STORAGE"; then
-            log "Installation command executed successfully."
-            notify msg "$APP_NAME $APP_VER installed successfully using Rish!"
-            return 0
-        elif [ "$UNINSTALL_CURRENT_INSTALLATION" = true ] || [ "$HIDDEN_APP_INSTALL" = true ] ; then
-            # Second attempt to install the APK, if we had to uninstall the current app
-            log "First installation attempt failed, trying again after uninstallation."
-            SECOND_ATTEMPT=true
-        else
-            log "Installation failed, but we didn't uninstall the current app, so we cannot retry."
-            notify msg "Installation Failed !!\nShare logs to developer."
-            termux-open --send "$STORAGE/rish_log.txt"
-            return 1
-        fi
-    else 
-        log "Installation aborted due to previous errors."
-        notify msg "Failed to uninstall the current app.\n\nAborting installation...\n\nCopied patched $APP_NAME apk to Internal Storage..."
+    log "Attempting to install the patched APK..."
+    if bash system/rish-install.sh "$PKG_NAME" "$APP_NAME" "$EXPORTED_APK_NAME" "$STORAGE"; then
+        log "Installation command executed successfully."
+        notify msg "$APP_NAME $APP_VER installed successfully using Rish!"
+        return 0
+    elif [ "$HIDDEN_APP_INSTALL" == true ] ; then
+        # Second attempt to install the APK, if we had to uninstall the current app
+        log "First installation attempt failed, trying again after uninstallation."
+    else
+        log "Installation of $APP_NAME $APP_VER failed."
+        notify msg "Installation Failed !!\nShare logs to developer."
         termux-open --send "$STORAGE/rish_log.txt"
         return 1
     fi
 
-    if [ "$SECOND_ATTEMPT" = true ]; then
+    if [ "$HIDDEN_APP_INSTALL" = true ]; then
         # We try to uninstall the app again, this can happen in Cases 1, 2, 3 if we have multiple users in the device with the app
         log "Getting second attempt, this can happen in Cases 1, 2, 3, if we have multiple users in the device with the app..."
         
