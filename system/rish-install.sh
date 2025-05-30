@@ -11,8 +11,9 @@ else
     log() { echo "- $1" >> "$STORAGE/rish_log.txt"; }
 fi
 
+log "Starting rish-install.sh for package: $PKG_NAME, app name: $APP_NAME, exported APK name: $EXPORTED_APK_NAME"
 # Current user, it's usually 0, but can be different in some cases.
-CURRENT_USER=$(rish -c 'am get-current-user' 2>/dev/null | tr -d '\r')
+CURRENT_USER=$(rish -c 'am get-current-user' 2>/dev/null | tr -d '\r\n' | xargs)
 CURRENT_USER=${CURRENT_USER:-0}
 
 # It's needed for pm install to have the APK in the /data/local/tmp/ directory

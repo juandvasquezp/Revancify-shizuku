@@ -104,12 +104,13 @@ installAppRish() {
     fi
 
     if [ "$UNINSTALL_CURRENT_INSTALLATION" == true ]; then
+        notify info "Please Wait !!\nUninstalling $APP_NAME $APP_VER using Rish..."
         if uninstallAppRish false true "$STORAGE"; then
             log "Uninstallation successful, proceeding with installation."
             if ! rish -c 'dumpsys package "'"$PKG_NAME"'"' 2>&1 | grep -q "Unable to find package"; then
                 log "Found hidden installation post uninstallation. This might be a different user."
                 HIDDEN_APP_INSTALL=true
-            if
+            fi
         else
             log "Uninstallation failed."
             mesage="Failed to uninstall the current app.\n\nAborting installation...\n\nCopied patched $APP_NAME apk to Internal Storage..."
@@ -139,7 +140,7 @@ installAppRish() {
         log "Getting second attempt, this can happen in Cases 1, 2, 3, if we have multiple users in the device with the app..."
         
         dialog --backtitle 'Revancify' --defaultno \
-            --yesno "We coudn't install the App.\nA different user probably has an incompatible app.\n\nDo you want to uninstall the app from all users and proceed?\nWe cannot guarantee this will succeed..." 12 45
+            --yesno "We coudn't install the App.\nA different user probably has an incompatible $APP_NAME app.\n\nDo you want to uninstall $APP_NAME from all users and proceed?\nWe cannot guarantee this will succeed..." 12 45
         if [ $? -eq 0 ]; then
             log "User accepted to uninstall the app from all users."
             # We try to uninstall the app from all users, this can fail if the system doesn't allow it
@@ -169,6 +170,8 @@ installAppRish() {
         fi
     fi
     log "UNEXPECTED ERROR: We shouldn't reach this point, but if we do, we will return 1."
+    notify msg "Installation Failed !!\nShare logs to developer. \n\nCopied patched $APP_NAME apk to Internal Storage..."
+    termux-open --send "$STORAGE/rish_log.txt"
     return 1
 }
 
