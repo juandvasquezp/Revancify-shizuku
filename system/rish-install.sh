@@ -56,7 +56,17 @@ if echo "$OUTPUT" | grep -q "^Success"; then
         rm -f "$STORAGE/Patched/$EXPORTED_APK_NAME.apk"  # Clean up the exported APK on success
     fi
     exit 0
+elif [ "$(rish -c 'pm list packages --user current | grep -q "'"$PKG_NAME"'" && echo Installed')" == "Installed" ]; then
+    log "Install succeeded, but output was not 'Success'."
+    rish -c 'rm -f "'"$PATCHED_APP_PATH"'"'  # Clean up the temporary APK
+    if [ -z "$STORAGE" ]; then
+        rish -c 'rm -f "'"$EXPORTED_APP_PATH"'"'  # Clean up the exported APK on success
+    else
+        rm -f "$STORAGE/Patched/$EXPORTED_APK_NAME.apk"  # Clean up the exported APK on success
+    fi
+    exit 0
 else
+    # Sometimes the output is not "Success" but still the app is installed, so we check for that.
     log "Install failed."
     rish -c 'rm -f "'"$PATCHED_APP_PATH"'"'  # Clean up the temporary APK
     exit 1

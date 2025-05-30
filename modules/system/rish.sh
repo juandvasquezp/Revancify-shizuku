@@ -36,7 +36,7 @@ installAppRish() {
         else
             # If the app is not installed in the current user, we try to get the stock app path from dumpsys
             # This means the app is installed in a different user
-            STOCK_APP_PATH=$(rish -c 'dumpsys package '"$PKG_NAME"' | sed -n "s/^[[:space:]]*path: \(.*base\.apk\)/\1/p"')
+            STOCK_APP_PATH=$(rish -c 'dumpsys package "'"$PKG_NAME"'" | sed -n "s/^[[:space:]]*path: \(.*base\.apk\)/\1/p"')
             log "Dumpsys used to get stock app path, that means the app is installed but in a different user."
             HIDDEN_APP_INSTALL=true
         fi
@@ -127,7 +127,7 @@ installAppRish() {
             log "Installation command executed successfully."
             notify msg "$APP_NAME $APP_VER installed successfully using Rish!"
             return 0
-        elif ; then
+        elif [ "$UNINSTALL_CURRENT_INSTALLATION" = true ] || [ "$HIDDEN_APP_INSTALL" = true ] ; then
             # Second attempt to install the APK, if we had to uninstall the current app
             log "First installation attempt failed, trying again after uninstallation."
             SECOND_ATTEMPT=true
