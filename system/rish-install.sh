@@ -32,7 +32,7 @@ if [ "$(rish -c"[ -e $PATCHED_APP_PATH ] && echo Exists || echo Missing")" == "E
     log "Residual $PATCHED_APP_PATH deleted"
 fi
 
-log "Copying exported APK to /data/local/tmp/revancify..."
+log "Moving exported APK to /data/local/tmp/revancify..."
 rish -c "mv -f $EXPORTED_APP_PATH $PATCHED_APP_PATH"
 
 if [ "$(rish -c "[ -e $PATCHED_APP_PATH ] && echo Exists || echo Missing")" == "Missing" ]; then
@@ -40,7 +40,7 @@ if [ "$(rish -c "[ -e $PATCHED_APP_PATH ] && echo Exists || echo Missing")" == "
     exit 1
 fi
 
-CMD_RISH="pm install --user current $PATCHED_APP_PATH"
+CMD_RISH="pm install -r --user current $PATCHED_APP_PATH"
 
 # We execute the install command using rish
 OUTPUT=$(rish -c "$CMD_RISH" 2>&1)
@@ -58,7 +58,7 @@ elif [ "$(rish -c "pm list packages --user current | grep -q $PKG_NAME && echo I
     exit 0
 else
     # Sometimes the output is not "Success" but still the app is installed, so we check for that.
-    log "Install failed."
+    log "Install failed. Moving APK back to original location."
     rish -c "mv -f $PATCHED_APP_PATH $EXPORTED_APP_PATH"  # Move the APK back to the original location
     exit 1
 fi
