@@ -33,7 +33,7 @@ if [ "$(rish -c"[ -e $PATCHED_APP_PATH ] && echo Exists || echo Missing")" == "E
 fi
 
 log "Copying exported APK to /data/local/tmp/revancify..."
-rish -c "cp -f $EXPORTED_APP_PATH $PATCHED_APP_PATH"
+rish -c "mv -f $EXPORTED_APP_PATH $PATCHED_APP_PATH"
 
 if [ "$(rish -c "[ -e $PATCHED_APP_PATH ] && echo Exists || echo Missing")" == "Missing" ]; then
     log "Failed to move patched APK to $PATCHED_APP_PATH"
@@ -51,24 +51,14 @@ log "Install output: $OUTPUT"
 if echo "$OUTPUT" | grep -q "^Success"; then
     log "Install succeeded."
     rish -c "rm -f $PATCHED_APP_PATH"  # Clean up the temporary APK
-    if [ -z "$STORAGE" ]; then
-        rish -c "rm -f $EXPORTED_APP_PATH"  # Clean up the exported APK on success
-    else
-        rm -f "$STORAGE/Patched/$EXPORTED_APK_NAME.apk"  # Clean up the exported APK on success
-    fi
     exit 0
 elif [ "$(rish -c "pm list packages --user current | grep -q $PKG_NAME && echo Installed")" == "Installed" ]; then
     log "Install succeeded, but output was not 'Success'."
     rish -c "rm -f $PATCHED_APP_PATH"  # Clean up the temporary APK
-    if [ -z "$STORAGE" ]; then
-        rish -c "rm -f $EXPORTED_APP_PATH"  # Clean up the exported APK on success
-    else
-        rm -f "$STORAGE/Patched/$EXPORTED_APK_NAME.apk"  # Clean up the exported APK on success
-    fi
     exit 0
 else
     # Sometimes the output is not "Success" but still the app is installed, so we check for that.
     log "Install failed."
-    rish -c "rm -f $PATCHED_APP_PATH"  # Clean up the temporary APK
+    rish -c "mv -f $PATCHED_APP_PATH $EXPORTED_APP_PATH"  # Move the APK back to the original location
     exit 1
 fi
